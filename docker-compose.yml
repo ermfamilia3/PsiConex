@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: clinica_psico_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: senha_segura_mysql_2026
+      MYSQL_DATABASE: clinica_psico
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./backend/Banco/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - clinica_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clinica_psico_backend
+    restart: always
+    environment:
+      DB_USER: root
+      DB_PASSWORD: senha_segura_mysql_2026
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: clinica_psico
+      SECRET_KEY: clinica_psico_chave_secreta_jwt_producao_2026_super_segura
+      FRONTEND_ORIGINS: http://localhost:5173,http://localhost,http://127.0.0.1
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - clinica_network
+
+  frontend:
+    build:
+      context: ./frontend/Clinica-PSICO-React
+      dockerfile: Dockerfile
+    container_name: clinica_psico_frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - clinica_network
+
+networks:
+  clinica_network:
+    driver: bridge
+
+volumes:
+  db_data:
