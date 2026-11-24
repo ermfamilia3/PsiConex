@@ -1,5 +1,4 @@
 import os
-from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -8,32 +7,18 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 # Carrega as variáveis do arquivo .env localizado na raiz do projeto.
 load_dotenv()
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME")
-_missing = [name for name, value in {
-    "DB_USER": DB_USER,
-    "DB_HOST": DB_HOST,
-    "DB_NAME": DB_NAME,
-}.items() if not value]
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-if _missing:
+if not DATABASE_URL:
     raise RuntimeError(
-        "Configure estas variáveis no arquivo .env: " + ", ".join(_missing)
+        "Configure a variável DATABASE_URL no arquivo .env com a Connection String do Supabase."
     )
-
-# Codifica usuário/senha para que caracteres especiais não quebrem a URL.
-DATABASE_URL = (
-    f"mysql+pymysql://{quote_plus(DB_USER)}:{quote_plus(DB_PASSWORD)}"
-    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
 
 engine = create_engine(
     DATABASE_URL,
+    connect_args={"sslmode": "require"},
     pool_pre_ping=True,
-    pool_recycle=3600,
+    pool_recycle=1800,
 )
 
 SessionLocal = sessionmaker(
