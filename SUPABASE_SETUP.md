@@ -1,107 +1,124 @@
-# 🧠 PsiConex — Guia de Configuração do Supabase (PostgreSQL)
+# 🧠 PsiConex — Guia Completo: Supabase (PostgreSQL) & Controle de Acesso
 
-Este guia descreve como conectar o backend do **PsiConex** ao banco de dados **PostgreSQL** gerenciado pelo [Supabase](https://supabase.com), substituindo o MySQL local.
-
----
-
-## Pré-requisitos
-
-- Conta criada em [supabase.com](https://supabase.com) (plano gratuito disponível)
-- Python 3.11+ com `pip`
-- Repositório clonado localmente
+Este guia descreve como conectar o **PsiConex** ao banco de dados **PostgreSQL** gerenciado pelo [Supabase](https://supabase.com) e como funciona a regra de permissão onde **apenas o Administrador Principal pode cadastrar novos psicólogos**.
 
 ---
 
-## Passo 1 — Criar o projeto no Supabase
+## 🔐 Regra de Acesso: Apenas o Administrador Principal Cadastra Psicólogos
 
-1. Acesse [app.supabase.com](https://app.supabase.com) e clique em **New project**.
-2. Escolha uma organização (ou crie uma nova).
-3. Preencha:
-   - **Name**: `psiconex` (ou o nome que preferir)
-   - **Database Password**: crie uma senha forte e **guarde-a** — será usada na connection string.
-   - **Region**: escolha a mais próxima do Brasil (ex: `South America (São Paulo)`).
-4. Clique em **Create new project** e aguarde a inicialização (cerca de 1 minuto).
+Por questões de segurança, conformidade e integridade dos registros da clínica:
+
+- **Quem é o Administrador Principal:**
+  - O usuário com perfil `admin` cujo e-mail corresponde a `ADMIN_EMAIL` no arquivo `.env` (padrão: `admin@clinicapsico.com.br`) ou que possua `id = 1` no banco de dados.
+- **O que apenas o Administrador Principal pode fazer:**
+  - ✅ Cadastrar novos psicólogos (criando automaticamente o login de acesso profissional).
+  - ✅ Editar especialidades, CRP, abordagem e status de qualquer profissional.
+  - ✅ Desativar ou excluir psicólogos do sistema.
+  - ✅ Cadastrar novos administradores secundários ou secretárias.
+- **O que os Psicólogos e outros usuários veem:**
+  - 👁️ Visualização em modo leitura de seus dados e da equipe.
+  - 🔒 O botão **"Novo psicólogo"** e os botões de edição/exclusão ficam bloqueados na interface.
+  - 🚫 Tentativas diretas na API via HTTP POST/PUT/DELETE em `/psicologos/` retornam erro `403 Forbidden` (`Apenas o administrador principal pode cadastrar novos psicólogos`).
+
+---
+
+## Passo 1 — Criar o Projeto no Supabase
+
+1. Acesse [app.supabase.com](https://app.supabase.com) e faça login (ou crie uma conta gratuita).
+2. Clique em **New project**.
+3. Escolha sua organização e preencha:
+   - **Name**: `psiconex` (ou o nome da sua clínica)
+   - **Database Password**: crie uma senha segura e **guarde-a** com cuidado.
+   - **Region**: selecione `South America (São Paulo)` para menor latência.
+4. Clique em **Create new project** e aguarde cerca de 1 minuto até o provisionamento concluir.
 
 ---
 
 ## Passo 2 — Obter a Connection String
 
-1. No painel do projeto, vá em **Settings** (ícone de engrenagem) → **Database**.
+1. No painel do seu projeto no Supabase, clique no ícone de engrenagem no menu lateral: **Project Settings** → **Database**.
 2. Role até a seção **Connection string**.
 3. Selecione a aba **URI**.
-4. Copie a string. Ela terá o formato:
+4. Copie a URL. Ela terá o formato:
+   ```text
+   postgresql://postgres:[SUA-SENHA]@db.[SEU-PROJECT-REF].supabase.co:5432/postgres
    ```
-   postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
-   ```
-5. Substitua `[YOUR-PASSWORD]` pela senha que você definiu no Passo 1.
+   *(Caso utilize o Connection Pooling do Supabase, o formato será na porta `6543` ou `5432` pelo pooler).*
+5. Substitua `[SUA-SENHA]` pela senha definida no Passo 1.
+   > **Dica**: Se sua senha contiver caracteres especiais (como `@`, `#`, `%`, `&`), converta-os para URL Encoding (exemplo: `@` vira `%40`).
 
 ---
 
-## Passo 3 — Configurar o arquivo `.env`
+## Passo 3 — Executar o Schema no Supabase SQL Editor
 
-1. Na pasta `backend/`, copie o arquivo de exemplo:
-   ```bash
-   cp .env.example .env
-   ```
-2. Abra o `.env` e preencha a variável `DATABASE_URL`:
-   ```env
-   DATABASE_URL=postgresql+psycopg2://postgres:SUA_SENHA@db.SEU_PROJECT_REF.supabase.co:5432/postgres
-   ```
-   > **Atenção**: use o prefixo `postgresql+psycopg2://` (não apenas `postgresql://`) para compatibilidade com o SQLAlchemy.
-
-3. Preencha também as demais variáveis (`SECRET_KEY`, `ENCRYPTION_KEY`, etc.) conforme necessário.
-
----
-
-## Passo 4 — Executar o schema no Supabase
-
-1. No painel do Supabase, clique em **SQL Editor** (ícone de banco de dados com raios).
+1. No painel do Supabase, clique em **SQL Editor** (ícone com raios no menu lateral esquerdo).
 2. Clique em **New query**.
-3. Abra o arquivo `backend/Banco/schema_supabase.sql` localmente, **copie todo o conteúdo** e cole na área de texto do SQL Editor.
-4. Clique em **Run** (▶).
-5. Verifique se as tabelas aparecem em **Table Editor** — devem estar listadas: `usuarios`, `pacientes`, `psicologos`, `agendamentos`, `prontuarios`, `transacoes`, `documentos`, `aplicacoes_testes`, `assinaturas`, `audit_log`, `configuracoes`.
-
-> **Nota**: o usuário administrador padrão (`admin@clinicapsico.com.br` / senha `Admin@123`) é inserido automaticamente pelo script. Altere a senha no primeiro acesso.
+3. Abra o arquivo local [`backend/Banco/schema_supabase.sql`](file:///d:/home/gabriel_25308.LAB/Downloads/PsiConex/PsiConex/backend/Banco/schema_supabase.sql).
+4. Copie **todo o conteúdo** e cole no editor do Supabase.
+5. Clique no botão **Run** (▶) ou pressione `Ctrl + Enter`.
+6. O Supabase criará automaticamente todas as 11 tabelas:
+   - `usuarios`
+   - `pacientes`
+   - `psicologos`
+   - `agendamentos`
+   - `prontuarios`
+   - `transacoes`
+   - `documentos`
+   - `aplicacoes_testes`
+   - `assinaturas`
+   - `audit_log`
+   - `configuracoes`
+7. Vá em **Table Editor** e confirme se todas as tabelas e o usuário administrador padrão foram criados.
 
 ---
 
-## Passo 5 — Instalar as dependências Python
+## Passo 4 — Configurar o Arquivo `.env` do Backend
 
-Na pasta `backend/`, instale os pacotes atualizados:
+Abra o arquivo [`backend/.env`](file:///d:/home/gabriel_25308.LAB/Downloads/PsiConex/PsiConex/backend/.env) e configure a sua URL do Supabase e o e-mail do Administrador Principal:
 
-```bash
-pip install -r requirements.txt
+```env
+# Banco de Dados — Supabase PostgreSQL
+DATABASE_URL=postgresql+psycopg2://postgres:SUA_SENHA_AQUI@db.SEU_PROJETO_REF.supabase.co:5432/postgres
+
+# Administrador Principal com permissão exclusiva de cadastro de psicólogos
+ADMIN_EMAIL=admin@clinicapsico.com.br
+
+# Chaves de Criptografia & JWT
+SECRET_KEY=Pt0G7IPTR0E8P7lKD2s7Ad72WAIFo2n5lkKGRbY2kOY
+ENCRYPTION_KEY=chave_aes_256_fernet_32_bytes_base64_aqui_________________
+
+# Origens autorizadas do Frontend (CORS)
+FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
 ```
 
-> O driver `psycopg2-binary` substitui o `PyMySQL` que era utilizado com o MySQL.
+> **Nota de Compatibilidade**: O sistema normaliza automaticamente URLs iniciadas por `postgres://` ou `postgresql://` para `postgresql+psycopg2://`, garantindo funcionamento plug-and-play.
 
 ---
 
-## Passo 6 — Iniciar o backend
+## Passo 5 — Instalar as Dependências e Rodar o Sistema
 
+### 1. Backend (Python + FastAPI)
 ```bash
 cd backend
-uvicorn main:app --reload
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 ```
+- API disponível em: `http://localhost:8000`
+- Documentação interativa Swagger: `http://localhost:8000/docs`
 
-A API estará disponível em `http://localhost:8000`. Acesse a documentação interativa em `http://localhost:8000/docs`.
-
----
-
-## Resumo das alterações realizadas
-
-| Arquivo | O que mudou |
-|---|---|
-| `backend/Banco/schema_supabase.sql` | Novo schema PostgreSQL (criado) |
-| `backend/database.py` | Adaptado para `DATABASE_URL` único + `psycopg2` + SSL |
-| `backend/requirements.txt` | `PyMySQL` → `psycopg2-binary` |
-| `backend/.env.example` | Variáveis individuais de DB → `DATABASE_URL` única |
+### 2. Frontend (React + Vite)
+```bash
+cd frontend/Clinica-PSICO-React
+npm install
+npm run dev
+```
+- Interface disponível em: `http://localhost:5173`
 
 ---
 
-## Dicas e Troubleshooting
+## Credenciais Iniciais do Administrador Principal
 
-- **Erro de SSL**: o Supabase exige conexão SSL. O `database.py` já inclui `sslmode=require`. Certifique-se de não remover essa configuração.
-- **Senha com caracteres especiais**: se a senha contiver `@`, `#`, `%` etc., codifique-os em URL (ex: `%40` para `@`) ou coloque a string entre aspas no `.env`.
-- **Quota gratuita**: o plano gratuito do Supabase permite até **500 MB** de banco de dados e **50.000 requisições/mês**. Suficiente para desenvolvimento e pequenas clínicas.
-- **Backups**: o Supabase faz backup automático diário no plano gratuito (retenção de 1 dia) e com maior retenção nos planos pagos.
+- **E-mail**: `admin@clinicapsico.com.br`
+- **Senha**: `Admin@123`
+
+Ao fazer login com esta conta, você terá acesso completo para cadastrar os psicólogos da clínica na aba **Psicólogos**. Cada profissional cadastrado receberá automaticamente seu login e senha individual para acessar prontuários e atendimentos online.

@@ -17,6 +17,7 @@ from services.usuario_service import (
 )
 from utils.auth import get_usuario_atual
 from utils.audit import registrar_audit
+from utils.rbac import is_admin_principal
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "chave_secreta_padrao_para_desenvolvimento_trocar_em_prod")
@@ -31,7 +32,7 @@ def cadastrar_usuario(
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(get_usuario_atual),
 ):
-    if usuario_atual.papel != "admin":
+    if not is_admin_principal(usuario_atual, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas o administrador principal pode cadastrar novos usuários ou psicólogos."
@@ -39,8 +40,15 @@ def cadastrar_usuario(
     novo_usuario = criar_usuario(db, usuario)
     if novo_usuario is None:
         raise HTTPException(status_code=409, detail="E-mail já cadastrado")
-    registrar_audit(db, usuario_atual.id, "CRIAR", "usuarios", novo_usuario.id, dados_novos={"email": usuario.email, "nome": usuario.nome})
-    return novo_usuario
+    registrar_audit(db, usuario_atual.id, "CRIAR", "usuarios", novo_usuario.id, dados_novos={"email": usuario.email, "nome": usuario.nome, "papel": usuario.papel})
+    return UsuarioResponse(
+        id=novo_usuario.id,
+        nome=novo_usuario.nome,
+        email=novo_usuario.email,
+        papel=novo_usuario.papel,
+        ativo=novo_usuario.ativo,
+        is_admin_principal=is_admin_principal(novo_usuario, db),
+    )
 
 
 @router.post("/login")
@@ -69,14 +77,25 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             "id": usuario.id,
             "nome": usuario.nome,
             "email": usuario.email,
-            "papel": usuario.papel
+            "papel": usuario.papel,
+            "is_admin_principal": is_admin_principal(usuario, db),
         }
     }
 
 
 @router.get("/me", response_model=UsuarioResponse)
-def obter_meu_perfil(usuario_atual: Usuario = Depends(get_usuario_atual)):
-    return usuario_atual
+def obter_meu_perfil(
+    usuario_atual: Usuario = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+):
+    return UsuarioResponse(
+        id=usuario_atual.id,
+        nome=usuario_atual.nome,
+        email=usuario_atual.email,
+        papel=usuario_atual.papel,
+        ativo=usuario_atual.ativo,
+        is_admin_principal=is_admin_principal(usuario_atual, db),
+    )
 
 
 @router.get("/", response_model=list[UsuarioResponse])
@@ -86,8 +105,21 @@ def listar_usuarios(
 ):
     # Se admin, lista todos; se comum, retorna a si mesmo
     if usuario_atual.papel == "admin":
-        return db.query(Usuario).all()
-    return [usuario_atual]
+        usuarios = db.query(Usuario).all()
+    else:
+        usuarios = [usuario_atual]
+
+    return [
+        UsuarioResponse(
+            id=u.id,
+            nome=u.nome,
+            email=u.email,
+            papel=u.papel,
+            ativo=u.ativo,
+            is_admin_principal=is_admin_principal(u, db),
+        )
+        for u in usuarios
+    ]
 
 
 @router.get("/{usuario_id}", response_model=UsuarioResponse)
@@ -128,8 +160,14 @@ def excluir_usuario_rota(
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(get_usuario_atual),
 ):
-    if usuario_atual.id != usuario_id and usuario_atual.papel != "admin":
-        raise HTTPException(status_code=403, detail="Você não pode excluir outro usuário")
+    if usuario_id == 1 or (usuario_id == usuario_atual.id and is_admin_principal(usuario_atual, db)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O administrador principal não pode ser excluído do sistema."
+        )
+
+    if usuario_atual.id != usuario_id and not is_admin_principal(usuario_atual, db):
+        raise HTTPException(status_code=403, detail="Você não tem permissão para excluir usuários")
 
     usuario = excluir_usuario(db, usuario_id)
     if usuario is None:

@@ -179,7 +179,7 @@ export default function App() {
         <footer className="app-footer">
           <span>© 2026 PsiConex — Praticidade integrada em um só lugar.</span>
           <span>
-            <i className="status-dot" style={{ background: '#335b8c' }} /> Sistema para Psicólogos · React + FastAPI + MySQL
+            <i className="status-dot" style={{ background: '#335b8c' }} /> Sistema para Psicólogos · React + FastAPI + Supabase (PostgreSQL)
           </span>
         </footer>
       </main>

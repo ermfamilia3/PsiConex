@@ -65,7 +65,13 @@ export default function Header({ pageTitle, user, onMenu }) {
           </div>
           <span>
             <b>{user?.nome?.split(' ')[0] || 'Profissional'}</b>
-            <small>{user?.papel === 'admin' ? 'Administrador(a)' : 'Psicólogo(a)'}</small>
+            <small>
+              {user?.is_admin_principal || (user?.papel === 'admin' && (user?.id === 1 || user?.email === 'admin@clinicapsico.com.br'))
+                ? 'Admin Principal'
+                : user?.papel === 'admin'
+                ? 'Administrador(a)'
+                : 'Psicólogo(a)'}
+            </small>
           </span>
         </div>
         {notifications && (

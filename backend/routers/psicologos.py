@@ -7,6 +7,7 @@ from schemas import PsicologoCreate, PsicologoUpdate, PsicologoResponse
 from services.usuario_service import hash_senha
 from utils.auth import get_usuario_atual
 from utils.audit import registrar_audit, serializar_modelo
+from utils.rbac import is_admin_principal
 
 router = APIRouter(prefix="/psicologos", tags=["Psicólogos"])
 
@@ -38,10 +39,10 @@ def cadastrar_psicologo(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_usuario_atual),
 ):
-    if usuario.papel != "admin":
+    if not is_admin_principal(usuario, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas o administrador principal pode cadastrar outros psicólogos."
+            detail="Apenas o administrador principal pode cadastrar novos psicólogos."
         )
 
     psico_usuario_id = usuario.id
@@ -95,7 +96,7 @@ def atualizar_psicologo(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_usuario_atual),
 ):
-    if usuario.papel != "admin":
+    if not is_admin_principal(usuario, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas o administrador principal pode alterar o cadastro de outros psicólogos."
@@ -124,7 +125,7 @@ def excluir_psicologo(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_usuario_atual),
 ):
-    if usuario.papel != "admin":
+    if not is_admin_principal(usuario, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas o administrador principal pode excluir psicólogos."

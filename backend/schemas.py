@@ -34,6 +34,7 @@ class UsuarioResponse(BaseModel):
     email: EmailStr
     papel: str
     ativo: bool
+    is_admin_principal: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

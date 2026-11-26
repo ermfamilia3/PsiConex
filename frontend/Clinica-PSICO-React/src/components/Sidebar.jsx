@@ -124,7 +124,13 @@ export default function Sidebar({ page, setPage, user, onLogout, mobileOpen, clo
             </div>
             <span>
               <b>{user?.nome || 'Profissional'}</b>
-              <small>{user?.papel === 'admin' ? 'Administrador' : 'Psicólogo(a)'}</small>
+              <small>
+                {user?.is_admin_principal || (user?.papel === 'admin' && (user?.id === 1 || user?.email === 'admin@clinicapsico.com.br'))
+                  ? 'Admin Principal'
+                  : user?.papel === 'admin'
+                  ? 'Administrador'
+                  : 'Psicólogo(a)'}
+              </small>
             </span>
             <button className="icon-button" title="Sair do sistema" onClick={onLogout}>
               <LogOut size={17} />

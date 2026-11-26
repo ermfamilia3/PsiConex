@@ -115,7 +115,9 @@ def baixar_documento_pdf(
 
     registrar_audit(db, usuario.id, "GERAR_PDF", "documentos", doc.id)
 
-    filename = f"{doc.tipo.lower()}_{doc.id}.pdf".replace(" ", "_")
+    import unicodedata
+    tipo_slug = unicodedata.normalize("NFKD", doc.tipo.lower()).encode("ASCII", "ignore").decode("utf-8")
+    filename = f"{tipo_slug}_{doc.id}.pdf".replace(" ", "_")
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

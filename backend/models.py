@@ -3,6 +3,8 @@ Clínica PSICO — Modelos SQLAlchemy
 Tabelas dedicadas para cada módulo do sistema.
 """
 
+import os
+
 from sqlalchemy import (
     Boolean, Column, Date, DateTime, Enum, Float, ForeignKey,
     Integer, String, Text, func,
@@ -29,6 +31,13 @@ class Usuario(Base):
     ativo = Column(Boolean, nullable=False, default=True)
     criado_em = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     atualizado_em = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    @property
+    def is_admin_principal(self) -> bool:
+        if self.papel != "admin":
+            return False
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@clinicapsico.com.br").strip().lower()
+        return self.id == 1 or (bool(self.email) and self.email.strip().lower() == admin_email)
 
     # Relationships
     pacientes = relationship("Paciente", back_populates="usuario", cascade="all, delete-orphan")

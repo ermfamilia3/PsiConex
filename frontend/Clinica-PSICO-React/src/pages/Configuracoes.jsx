@@ -165,12 +165,12 @@ export default function ConfiguracoesPage({ user }) {
             </div>
 
             <div style={{ padding: 12, background: '#f0f9ff', borderRadius: 8, border: '1px solid #e0f2fe' }}>
-              <b style={{ fontSize: 11, color: '#0369a1', display: 'block' }}>Rotina de Backup</b>
+              <b style={{ fontSize: 11, color: '#0369a1', display: 'block' }}>Banco de Dados & Backup</b>
               <p style={{ fontSize: 11, color: '#0c4a6e', margin: '4px 0 0', lineHeight: 1.5 }}>
-                Os dados são armazenados de forma transacional no banco MySQL. Para fazer backup manual, utilize o comando:
+                Os dados são armazenados no <strong>Supabase (PostgreSQL)</strong> com backup diário automático gerenciado na nuvem e criptografia em repouso.
               </p>
               <code style={{ display: 'block', marginTop: 6, fontSize: 10, background: '#e0f2fe', padding: 6, borderRadius: 4 }}>
-                mysqldump -u root -p clinica_psico &gt; backup.sql
+                Supabase PostgreSQL · Conexão SSL Ativa
               </code>
             </div>
           </div>

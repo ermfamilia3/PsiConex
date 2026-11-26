@@ -14,7 +14,11 @@ const initials = (name = 'Psicólogo') =>
     .toUpperCase();
 
 export default function PsicologosPage({ user }) {
-  const isAdmin = user?.papel === 'admin';
+  // Apenas o administrador principal pode cadastrar, alterar ou excluir psicólogos
+  const isAdminPrincipal = Boolean(
+    user?.is_admin_principal ||
+    (user?.papel === 'admin' && (user?.id === 1 || user?.email === 'admin@clinicapsico.com.br'))
+  );
 
   const emptyForm = {
     nome: '',
@@ -57,6 +61,10 @@ export default function PsicologosPage({ user }) {
   );
 
   function startNew() {
+    if (!isAdminPrincipal) {
+      setError('Apenas o Administrador Principal tem permissão para cadastrar psicólogos.');
+      return;
+    }
     setEditing(null);
     setForm(emptyForm);
     setError('');
@@ -64,6 +72,10 @@ export default function PsicologosPage({ user }) {
   }
 
   function startEdit(p) {
+    if (!isAdminPrincipal) {
+      setError('Apenas o Administrador Principal tem permissão para editar psicólogos.');
+      return;
+    }
     setEditing(p);
     setForm({ ...emptyForm, ...p });
     setError('');
@@ -73,6 +85,10 @@ export default function PsicologosPage({ user }) {
   async function save(e) {
     e.preventDefault();
     setError('');
+    if (!isAdminPrincipal) {
+      setError('Apenas o Administrador Principal tem permissão para cadastrar ou editar psicólogos.');
+      return;
+    }
     try {
       if (editing) {
         await atualizarPsicologo(editing.id, form);
@@ -88,6 +104,10 @@ export default function PsicologosPage({ user }) {
   }
 
   async function remove(id) {
+    if (!isAdminPrincipal) {
+      setError('Apenas o Administrador Principal tem permissão para excluir psicólogos.');
+      return;
+    }
     if (!window.confirm('Excluir este psicólogo da clínica?')) return;
     try {
       await excluirPsicologo(id);
@@ -103,24 +123,24 @@ export default function PsicologosPage({ user }) {
       <Heading
         title="Corpo Clínico & Psicólogos"
         subtitle="Gerenciamento de profissionais, registro no CRP e especialidades da equipe."
-        action={isAdmin ? "Novo psicólogo" : undefined}
-        onAction={isAdmin ? startNew : undefined}
+        action={isAdminPrincipal ? "Novo psicólogo" : undefined}
+        onAction={isAdminPrincipal ? startNew : undefined}
       />
 
-      {!isAdmin && (
+      {!isAdminPrincipal && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          padding: '10px 14px',
+          padding: '12px 16px',
           background: '#f4f8fc',
           border: '1px solid #c2d9ee',
           borderRadius: 8,
           marginBottom: 16,
-          fontSize: 11,
+          fontSize: 12,
           color: '#244368'
         }}>
-          <span>🔒 <strong>Modo somente leitura:</strong> Apenas o Administrador principal tem permissão para cadastrar, editar ou remover psicólogos.</span>
+          <span>🔒 <strong>Acesso Restrito:</strong> Apenas o <strong>Administrador Principal</strong> tem permissão para cadastrar, editar ou remover psicólogos.</span>
         </div>
       )}
 
@@ -200,7 +220,7 @@ export default function PsicologosPage({ user }) {
                       <Badge tone={p.status === 'Ativo' ? 'success' : 'warning'}>{p.status}</Badge>
                     </td>
                     <td>
-                      {isAdmin ? (
+                      {isAdminPrincipal ? (
                         <>
                           <button className="secondary-button" onClick={() => startEdit(p)}>
                             Editar

@@ -37,6 +37,7 @@ origens = os.getenv(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origem.strip() for origem in origens.split(",") if origem.strip()] + ["*"],
+    allow_origin_regex=r"^https?:\/\/.*\.onrender\.com$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

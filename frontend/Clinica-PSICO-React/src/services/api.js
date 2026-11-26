@@ -1,4 +1,7 @@
-const API_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').trim().replace(/\/$/, '');
+const API_URL = rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://')
+  ? rawApiUrl
+  : `https://${rawApiUrl}`;
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('clinica_psico_token');

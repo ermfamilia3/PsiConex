@@ -147,7 +147,9 @@ Clinica_PSICO_v2/
 
 ## ⚡ Como Iniciar Rapidamente
 
-Consulte o arquivo [`MANUAL_INSTALACAO.md`](./MANUAL_INSTALACAO.md) para o tutorial passo a passo de abertura no **PyCharm** ou implantação em nuvem com **Docker Compose**.
+- **Deploy em Nuvem (Render)**: Veja o guia completo em [`RENDER_DEPLOY.md`](./RENDER_DEPLOY.md) (Deploy automático via Blueprint ou manual).
+- **Instalação Local**: Consulte o arquivo [`MANUAL_INSTALACAO.md`](./MANUAL_INSTALACAO.md) para o tutorial passo a passo de abertura no **PyCharm** ou implantação com **Docker Compose**.
+- **Configuração do Supabase**: Consulte [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md).
 
 ### Credenciais Padrão do Administrador Inicial:
 - **E-mail**: `admin@clinicapsico.com.br`

@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from database import Base, get_db
 from main import app
@@ -12,7 +13,9 @@ from services.usuario_service import hash_senha
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine_test = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
 
@@ -32,10 +35,37 @@ client = TestClient(app)
 
 
 @pytest.fixture(scope="module")
+def token_admin_principal():
+    # Cria usuário Administrador Principal de teste no banco em memória
+    db = TestingSessionLocal()
+    admin = Usuario(
+        id=1,
+        nome="Administrador Clínica Principal",
+        email="admin@clinicapsico.com.br",
+        senha=hash_senha("Admin@123"),
+        papel="admin",
+        ativo=True,
+    )
+    db.add(admin)
+    db.commit()
+    db.close()
+
+    # Faz login do Admin
+    resp = client.post(
+        "/usuarios/login",
+        data={"username": "admin@clinicapsico.com.br", "password": "Admin@123"},
+    )
+    assert resp.status_code == 200
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="module")
 def token_auth():
-    # Cria usuário de teste no banco em memória
+    # Cria usuário psicólogo de teste no banco em memória
     db = TestingSessionLocal()
     user = Usuario(
+        id=2,
         nome="Dra. Roberta Psicóloga",
         email="roberta@clinicapsico.com.br",
         senha=hash_senha("SenhaForte123"),
@@ -85,15 +115,30 @@ def test_listar_pacientes(token_auth):
     assert len(response.json()) >= 1
 
 
-def test_criar_psicologo(token_auth):
+def test_psicologo_nao_pode_criar_outro_psicologo(token_auth):
+    dados = {
+        "nome": "Dra. Juliana Psicóloga",
+        "crp": "06/999888",
+        "especialidade": "Psicanálise",
+        "email": "juliana@clinica.com",
+        "status": "Ativo"
+    }
+    # Tenta cadastrar psicólogo com usuário comum/psicólogo
+    response = client.post("/psicologos/", json=dados, headers=token_auth)
+    assert response.status_code == 403
+    assert "Apenas o administrador principal pode cadastrar novos psicólogos" in response.json()["detail"]
+
+
+def test_admin_principal_pode_criar_psicologo(token_admin_principal):
     dados = {
         "nome": "Dra. Roberta Silva",
         "crp": "06/123456",
         "especialidade": "Terapia Cognitivo-Comportamental",
-        "email": "roberta@clinica.com",
+        "email": "roberta_profissional@clinica.com",
         "status": "Ativo"
     }
-    response = client.post("/psicologos/", json=dados, headers=token_auth)
+    # Cadastra psicólogo com o token do administrador principal
+    response = client.post("/psicologos/", json=dados, headers=token_admin_principal)
     assert response.status_code == 201
     assert response.json()["crp"] == "06/123456"
 
