@@ -44,4 +44,4 @@ services:
         fromService:
           type: web
           name: psiconex-backend
-          property: host
+          property: url
