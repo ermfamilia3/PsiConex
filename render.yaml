@@ -33,7 +33,6 @@ services:
     name: psiconex-frontend
     runtime: static
     rootDir: frontend/Clinica-PSICO-React
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     routes:
