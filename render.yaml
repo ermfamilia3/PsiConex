@@ -41,7 +41,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: psiconex-backend
-          property: url
+        value: https://psiconex-backend.onrender.com
